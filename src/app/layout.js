@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/header";
 import { ClerkProvider } from "@clerk/nextjs";
 import { checkUser } from "@/lib/checkUser";
+import { Toaster } from "sonner";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -13,7 +14,7 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  await checkUser();
+
 
   return (
     <ClerkProvider>
@@ -26,6 +27,9 @@ export default async function RootLayout({ children }) {
           </Header>
 
           <main className="min-h-screen">{children}</main>
+          
+          <Toaster richColors/>
+          
 
           {/* footer */}
           <footer className="bg-blue-50 py-12">
