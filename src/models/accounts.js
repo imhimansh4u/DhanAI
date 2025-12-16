@@ -8,7 +8,7 @@ const accountsSchema = new mongoose.Schema(
     accountType: {
       type: String,
       required: [true, "Please provide the account type"],
-      enum : ["CURRENT","SAVINGS"]
+      enum: ["CURRENT", "SAVINGS"],
     },
     balance: {
       type: mongoose.Schema.Types.Decimal128,
@@ -19,7 +19,7 @@ const accountsSchema = new mongoose.Schema(
       default: false,
     },
     userId: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },

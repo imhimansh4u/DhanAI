@@ -29,7 +29,7 @@ const HeroSection = () => {
   },[]);
 
   return (
-    <section className="pt-32 md:pt-40 pb-20 bg-gradient-to-b from-[#f7fff8] to-white overflow-hidden">
+    <section className="pt-20 md:pt-20 pb-20 bg-gradient-to-b from-[#f7fff8] to-white overflow-hidden">
       <div className="container mx-auto flex flex-col-reverse md:flex-row items-center justify-between px-6 md:px-12 lg:px-20">
         {/* Left Content */}
         <div className="w-full md:w-1/2 text-center md:text-left space-y-6">
