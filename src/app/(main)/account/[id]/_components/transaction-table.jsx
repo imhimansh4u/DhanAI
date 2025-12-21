@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -44,6 +44,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import useFetch from "@/hooks/use-fetch";
+import { bulkDeleteTransactions } from "@/actions/accounts";
+import { BarLoader } from "react-spinners";
+import { toast } from "sonner";
 
 function TransactionTable({ transactions }) {
   const router = useRouter();
@@ -57,6 +61,14 @@ function TransactionTable({ transactions }) {
   const [typeFilter, setTypeFilter] = useState("");
   const [recurringFilter, setRecurringFilter] = useState("");
 
+  const {
+    loading: deleteLoading,
+    fn: deleteFn,
+    data: deleted,
+  } = useFetch(bulkDeleteTransactions);
+
+ 
+
   React.useEffect(() => {
     console.log(
       "TransactionTable - transactions sample:",
@@ -64,7 +76,7 @@ function TransactionTable({ transactions }) {
     );
   }, [transactions]);
 
-  const filteredAndSortedTransactions = useMemo(() => {
+  const filteredAndSortedTransactions = useMemo(() => {   //  useMemo memoize and values and changes when any of the dependencies changes
     let result = [...transactions];
 
     if (searchTerm) {
@@ -129,13 +141,32 @@ function TransactionTable({ transactions }) {
 
   const handleSelectAll = () => {
     setSelectedIds((current) =>
-      current.length === filteredAndSortedTransactions.length
+      current.length === filteredAndSortedTransactions.length  // If user already selected all , then remove all selected
         ? []
-        : filteredAndSortedTransactions.map((t) => t._id)
+        : filteredAndSortedTransactions.map((t) => t._id)  // else add all the selected one and store there _id only 
     );
   };
+  // To delete any number of Transactions
+   const handleBulkDelete = async () => {
+     if (
+       !window.confirm(
+         `Are You sure , You want to delete ${selectedIds.length} transactions ?`
+       )
+     ) {
+       return;
+     }
 
-  const handleBulkDelete = () => {};
+     deleteFn(selectedIds);
+   };
+  
+  
+   useEffect(() => {
+    if(deleted && !deleteLoading){
+      toast.success("Transactions deleted Successfully");
+    }
+    setSelectedIds([]); // all the selected ones are now gone 
+   },[deleted , deleteLoading]);
+   // To clear the applied Filters
   const handleClearFilters = () => {
     setSearchTerm("");
     setTypeFilter("");
@@ -145,6 +176,7 @@ function TransactionTable({ transactions }) {
 
   return (
     <div className="w-full mt-10 px-4 sm:px-10">
+      { deleteLoading && <BarLoader className="mt-4" width={"100%"} color="#9333ea"/>}
       {/* Filter Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="relative w-full sm:max-w-xs">
@@ -381,7 +413,9 @@ function TransactionTable({ transactions }) {
                         >
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem className="text-destructive"
+                          onClick={() => deleteFn([txn._id])}
+                        >
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
