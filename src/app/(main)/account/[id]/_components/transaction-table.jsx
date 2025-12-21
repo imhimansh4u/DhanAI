@@ -61,13 +61,15 @@ function TransactionTable({ transactions }) {
   const [typeFilter, setTypeFilter] = useState("");
   const [recurringFilter, setRecurringFilter] = useState("");
 
+  // For pagination Purpose
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const {
     loading: deleteLoading,
     fn: deleteFn,
     data: deleted,
   } = useFetch(bulkDeleteTransactions);
-
- 
 
   React.useEffect(() => {
     console.log(
@@ -76,7 +78,8 @@ function TransactionTable({ transactions }) {
     );
   }, [transactions]);
 
-  const filteredAndSortedTransactions = useMemo(() => {   //  useMemo memoize and values and changes when any of the dependencies changes
+  const filteredAndSortedTransactions = useMemo(() => {
+    //  useMemo memoize and values and changes when any of the dependencies changes
     let result = [...transactions];
 
     if (searchTerm) {
@@ -123,6 +126,7 @@ function TransactionTable({ transactions }) {
     return result;
   }, [transactions, searchTerm, typeFilter, recurringFilter, sortConfig]);
 
+  // To handle the Sorting
   const handleSort = (field) => {
     setSortConfig((current) => ({
       field,
@@ -140,43 +144,83 @@ function TransactionTable({ transactions }) {
   };
 
   const handleSelectAll = () => {
-    setSelectedIds((current) =>
-      current.length === filteredAndSortedTransactions.length  // If user already selected all , then remove all selected
-        ? []
-        : filteredAndSortedTransactions.map((t) => t._id)  // else add all the selected one and store there _id only 
+    setSelectedIds(
+      (current) =>
+        current.length === filteredAndSortedTransactions.length // If user already selected all , then remove all selected
+          ? []
+          : filteredAndSortedTransactions.map((t) => t._id) // else add all the selected one and store there _id only
     );
   };
   // To delete any number of Transactions
-   const handleBulkDelete = async () => {
-     if (
-       !window.confirm(
-         `Are You sure , You want to delete ${selectedIds.length} transactions ?`
-       )
-     ) {
-       return;
-     }
+  const handleBulkDelete = async () => {
+    if (
+      !window.confirm(
+        `Are You sure , You want to delete ${selectedIds.length} transactions ?`
+      )
+    ) {
+      return;
+    }
 
-     deleteFn(selectedIds);
-   };
-  
-  
-   useEffect(() => {
-    if(deleted && !deleteLoading){
+    deleteFn(selectedIds);
+  };
+
+  useEffect(() => {
+    if (deleted && !deleteLoading) {
       toast.success("Transactions deleted Successfully");
     }
-    setSelectedIds([]); // all the selected ones are now gone 
-   },[deleted , deleteLoading]);
-   // To clear the applied Filters
+    setSelectedIds([]); // all the selected ones are now gone
+
+    //Stay on same page, unless it becomes empty after delete
+    const newTotalPages = Math.ceil(
+      (filteredAndSortedTransactions.length - selectedIds.length) / itemsPerPage
+    );
+
+    // if current page becomes empty and there are previous pages, go back one page
+    if (currentPage > newTotalPages && currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [deleted, deleteLoading]);
+  // To clear the applied Filters
   const handleClearFilters = () => {
     setSearchTerm("");
     setTypeFilter("");
     setRecurringFilter("");
     setSelectedIds([]);
   };
+  // if any searching sorting things Happen or HandleBulkDelete happen , then set the curret page to 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, typeFilter, recurringFilter, sortConfig]);
+
+  // Now all the Important Variables
+  const totalPages = Math.ceil(
+    filteredAndSortedTransactions.length / itemsPerPage
+  );
+  const startIndx = (currentPage - 1) * itemsPerPage;
+  const endIndx = startIndx + itemsPerPage;
+  const currentItems = filteredAndSortedTransactions.slice(startIndx, endIndx);
+
+  //  Go to next page
+  const handleNextClick = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" }); // scroll to top
+    }
+  };
+
+  //  Go to previous page
+  const handlePrevClick = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" }); // scroll to top
+    }
+  };
 
   return (
     <div className="w-full mt-10 px-4 sm:px-10">
-      { deleteLoading && <BarLoader className="mt-4" width={"100%"} color="#9333ea"/>}
+      {deleteLoading && (
+        <BarLoader className="mt-4" width={"100%"} color="#9333ea" />
+      )}
       {/* Filter Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="relative w-full sm:max-w-xs">
@@ -237,7 +281,7 @@ function TransactionTable({ transactions }) {
           )}
         </div>
       </div>
-
+      {/* All the Headers Here */}
       <div className="overflow-x-auto border border-gray-300 rounded-md">
         <Table className="min-w-full text-sm text-gray-800 border-collapse">
           {/* Header */}
@@ -316,7 +360,7 @@ function TransactionTable({ transactions }) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredAndSortedTransactions.map((txn) => (
+              currentItems.map((txn) => (
                 <TableRow
                   key={txn._id}
                   className="border-b border-gray-200 hover:bg-gray-50"
@@ -359,7 +403,8 @@ function TransactionTable({ transactions }) {
                         : "text-green-600"
                     }`}
                   >
-                    ₹{Number(txn.amount || 0).toFixed(2)}
+                    {txn.transactionType === "EXPENSE" ? "-" : "+"}₹
+                    {Number(txn.amount || 0).toFixed(2)}
                   </TableCell>
 
                   {/* Recurring */}
@@ -413,7 +458,8 @@ function TransactionTable({ transactions }) {
                         >
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive"
+                        <DropdownMenuItem
+                          className="text-destructive"
                           onClick={() => deleteFn([txn._id])}
                         >
                           Delete
@@ -426,6 +472,51 @@ function TransactionTable({ transactions }) {
             )}
           </TableBody>
         </Table>
+        {/* This One is for the Next Button and Prev Button */}
+        {/* 🟩 Pagination Controls */}
+        <div>
+          {filteredAndSortedTransactions.length > itemsPerPage && (
+            <div className="flex items-center justify-center gap-3 py-4 border-t border-gray-200">
+              <Button
+                variant="outline"
+                onClick={handlePrevClick}
+                disabled={currentPage === 1}
+                className="px-3"
+              >
+                Prev
+              </Button>
+
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <Button
+                variant="outline"
+                onClick={handleNextClick}
+                disabled={currentPage === totalPages}
+                className="px-3"
+              >
+                Next
+              </Button>
+            </div>
+          )}
+          {/*  Page number buttons */}
+          <div className="flex justify-center gap-1 mt-2">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <Button
+                key={i}
+                variant={currentPage === i + 1 ? "default" : "outline"}
+                onClick={() => {
+                  setCurrentPage(i + 1);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="px-3 text-sm"
+              >
+                {i + 1}
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
