@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import React from "react";
 import { success } from "zod";
 import { notFound } from "next/navigation";
+import  Transaction  from "@/models/transactions";
 
 const serializeTransaction = (doc) => {
   // Handle both Mongoose documents and plain JS objects
@@ -82,9 +83,8 @@ export async function getAccountWithTransactions(accountId) {
   }
 
   if (!mongoose.Types.ObjectId.isValid(accountId)) {
-    return notFound();       // It means that if it is not valid accountId then simply navigate to 404 page 
+    return notFound(); // It means that if it is not valid accountId then simply navigate to 404 page
   }
-
 
   const account = await Account.aggregate([
     // This will give the account details , with all its transaction details , with all transaction counts
@@ -140,6 +140,69 @@ export async function getAccountWithTransactions(accountId) {
     ...serializeTransaction(account[0]),
     transactions: account[0].transactions.map(serializeTransaction),
   };
+}
+
+// To delete or bulk delete trnasactions
+export async function bulkDeleteTransactions(transactionIds) {
+  try {
+    const session = await mongoose.startSession(); // a session will ensure either all the operations inside it  succeed , or all will fail
+    await connect();
+    const { userId } = await auth();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const user = await User.findOne({ clerkUserId: userId });
+
+    if (!user) {
+      throw new Error("User not Found");
+    }
+
+    const transactions = await Transaction.find({
+      _id: { $in: transactionIds },
+      userId: user._id,
+    });
+
+    const accountBalanceChanges = transactions.reduce((acc, transaction) => {  // acc or accumulator keeps track of all the changes happens during the process , here in this case we used a object for it 
+      const change =
+        transaction.type === "EXPENSE"
+          ? transaction.amount   
+          : -transaction.amount;
+
+        acc[transaction.accountId] = (acc[transaction.accountId] || 0) - change;  // Update the changes according to the accountId
+        return acc;
+    },{});  // acc should must be initialised
+
+    // Now delete transactions and update account balances in a transaction
+
+    await session.withTransaction(async () => {
+      // Delete al the matching transactions
+      await Transaction.deleteMany(
+        {
+          _id: { $in: transactionIds },
+          userId: user._id,
+        },
+        { session } // attach session (kyuki iske bina seession ke andr include nhi rhega)
+      );
+
+      // Update each account's balance (Hmare case me bs ek hi account rhega)
+      for (const [accountId, balanceChange] of Object.entries(
+        accountBalanceChanges
+      )) {
+        await Account.updateOne(
+          { _id: accountId },
+          { $inc: { balance: balanceChange } },
+          { session } // attach session
+        );
+      }
+    });
+
+    console.log("Account Balance Updated Succesfully");
+    
+    revalidatePath("/dashboard");
+    revalidatePath("/account/[id]");
+  } catch (error) {
+    return {success : false , error: error.message};
+  }
 }
 
 // NOTES->
