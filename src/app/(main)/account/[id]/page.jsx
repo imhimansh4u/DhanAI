@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import React, { Suspense } from "react";
 import TransactionTable from "./_components/transaction-table";
 import { BarLoader } from "react-spinners";
+import { AccountChart } from "./_components/account-chart";
 
 function serializeTransactions(docs) {
   if (!docs) return [];
@@ -88,7 +89,11 @@ const AccountPage = async ({ params }) => {
       </div>
 
       {/* Chart Section */}
-
+      <div className="px-2 sm:px-10 mt-8">
+        <Suspense fallback={<BarLoader />}>
+          <AccountChart transactions={serializeTransactions(transactions)} />
+        </Suspense>
+      </div>
       {/* Transaction Table */}
       <div className="px-2 sm:px-10 mt-8">
         <Suspense fallback={<BarLoader />}>
