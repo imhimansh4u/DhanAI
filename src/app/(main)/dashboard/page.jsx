@@ -4,25 +4,38 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { getUserAccounts } from "@/actions/dashboard";
 import AccountCard from "./_components/account-card";
+import { getCurrentBudget } from "@/actions/budget";
+import BudgetProgress from "./_components/budget-progress";
 
 async function Dashboardpage() {
 
   const accounts = await getUserAccounts();  
 
+  const defaultAccount = accounts?.find((acc)  => acc.isDefault);
+
+  let budgetData = null;
+  if(defaultAccount){
+    budgetData = await getCurrentBudget(defaultAccount._id);
+  }
+
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-white to-green-50 px-6 py-10">
-    
+      {/* Budget Progress  */}
+      {defaultAccount && (
+        <BudgetProgress
+          initialBudget={budgetData?.budget}
+          currentExpenses={budgetData?.currentExpenses || 0}
+        />
+      )}
 
-      {/* Budget Progress Section (placeholder for now) */}
-      
-
-      {/*  Overview Section (placeholder for now) */}
-    
+      {/*  Overview Section */}
 
       {/*  Accounts Grid */}
       <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-medium text-gray-700">Accounts</h2>
+        <div className="flex items-center justify-between mt-8 mb-8 px-4 sm:px-6 lg:px-3">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 tracking-tight">
+            Accounts
+          </h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -38,9 +51,10 @@ async function Dashboardpage() {
             </Card>
           </CreateAccountDrawer>
 
-          {accounts.length>0 && accounts?.map((account)=>{
-            return <AccountCard key={account._id} account={account}/>
-          })}
+          {accounts.length > 0 &&
+            accounts?.map((account) => {
+              return <AccountCard key={account._id} account={account} />;
+            })}
         </div>
       </section>
     </div>
