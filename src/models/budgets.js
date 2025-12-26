@@ -20,6 +20,6 @@ const budgetsSchema = new mongoose.Schema(
   }
 );
 
-const Budgets = mongoose.models.Budgets || mongoose.model("Budgets",budgetsSchema);
+const Budget = mongoose.models.Budget || mongoose.model("Budget",budgetsSchema);
 
-export default Budgets; 
+export default Budget; 
