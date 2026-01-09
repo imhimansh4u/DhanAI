@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import React from "react";
 import { success } from "zod";
 import { notFound } from "next/navigation";
-import  Transaction  from "@/models/transactions";
+import Transaction from "@/models/transactions";
 
 const serializeTransaction = (doc) => {
   // Handle both Mongoose documents and plain JS objects
@@ -31,6 +31,14 @@ const serializeTransaction = (doc) => {
     userId: obj.userId?.toString(),
     balance: convertDecimalToNumber(obj.balance),
     amount: convertDecimalToNumber(obj.amount),
+    // Include transaction-specific date fields and convert to ISO strings
+    date: obj.date ? new Date(obj.date).toISOString() : null,
+    nextRecurringDate: obj.nextRecurringDate
+      ? new Date(obj.nextRecurringDate).toISOString()
+      : null,
+    lastProcessed: obj.lastProcessed
+      ? new Date(obj.lastProcessed).toISOString()
+      : null,
     createdAt: obj.createdAt ? new Date(obj.createdAt).toISOString() : null,
     updatedAt: obj.updatedAt ? new Date(obj.updatedAt).toISOString() : null,
   };
@@ -162,15 +170,16 @@ export async function bulkDeleteTransactions(transactionIds) {
       userId: user._id,
     });
 
-    const accountBalanceChanges = transactions.reduce((acc, transaction) => {  // acc or accumulator keeps track of all the changes happens during the process , here in this case we used a object for it 
+    const accountBalanceChanges = transactions.reduce((acc, transaction) => {
+      // acc or accumulator keeps track of all the changes happens during the process , here in this case we used a object for it
       const change =
         transaction.type === "EXPENSE"
-          ? transaction.amount   
+          ? transaction.amount
           : -transaction.amount;
 
-        acc[transaction.accountId] = (acc[transaction.accountId] || 0) - change;  // Update the changes according to the accountId
-        return acc;
-    },{});  // acc should must be initialised
+      acc[transaction.accountId] = (acc[transaction.accountId] || 0) - change; // Update the changes according to the accountId
+      return acc;
+    }, {}); // acc should must be initialised
 
     // Now delete transactions and update account balances in a transaction
 
@@ -197,11 +206,11 @@ export async function bulkDeleteTransactions(transactionIds) {
     });
 
     console.log("Account Balance Updated Succesfully");
-    
+
     revalidatePath("/dashboard");
     revalidatePath("/account/[id]");
   } catch (error) {
-    return {success : false , error: error.message};
+    return { success: false, error: error.message };
   }
 }
 
