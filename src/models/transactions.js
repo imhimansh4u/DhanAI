@@ -6,7 +6,7 @@ const transactionSchema = new Schema(
   {
     transactionType: {
       type: String,
-      enum : ["INCOME","EXPENSE"]
+      enum: ["INCOME", "EXPENSE"],
     },
     userId: {
       type: Schema.Types.ObjectId,
@@ -36,13 +36,18 @@ const transactionSchema = new Schema(
     },
     recurringInterval: {
       type: String,
-      enum : ["DAILY","WEEKLY","MONTHLY","YEARLY"]
+      enum: ["DAILY", "WEEKLY", "MONTHLY", "YEARLY"],
     },
     nextRecurringDate: {
       type: Date,
     },
     lastProcessed: {
       type: Date,
+    },
+    date: {
+      type: Date,
+      required: true,
+      default: Date.now, // use the same as createdAt if not provided
     },
   },
   {

@@ -135,3 +135,15 @@
 .hero-image.scrolled {
   transform: rorateX(0deg) scale(1) translateY(40px);
 }
+
+@keyframes shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+.gradient-title {
+  background-size: 200% auto;
+}
