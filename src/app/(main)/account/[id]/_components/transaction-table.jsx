@@ -108,7 +108,21 @@ function TransactionTable({ transactions }) {
       let comparison = 0;
       switch (sortConfig.field) {
         case "date":
-          comparison = new Date(a.createdAt) - new Date(b.createdAt);
+          // Strictly compare the transaction `date` field. Missing dates are
+          // treated as 'after' so they appear later when sorting descending.
+          {
+            const ta = isNaN(new Date(a.date).getTime())
+              ? null
+              : new Date(a.date).getTime();
+            const tb = isNaN(new Date(b.date).getTime())
+              ? null
+              : new Date(b.date).getTime();
+
+            if (ta === null && tb === null) comparison = 0;
+            else if (ta === null) comparison = 1;
+            else if (tb === null) comparison = -1;
+            else comparison = ta - tb;
+          }
           break;
         case "amount":
           comparison = a.amount - b.amount;
@@ -373,8 +387,8 @@ function TransactionTable({ transactions }) {
                   </TableCell>
 
                   <TableCell className="border-r border-gray-200 px-4 whitespace-nowrap">
-                    {txn.createdAt && !isNaN(new Date(txn.createdAt))
-                      ? format(new Date(txn.createdAt), "PP")
+                    {txn.date && !isNaN(new Date(txn.date))
+                      ? format(new Date(txn.date), "PP")
                       : "—"}
                   </TableCell>
 

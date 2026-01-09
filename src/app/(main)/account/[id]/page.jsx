@@ -19,6 +19,7 @@ function serializeTransactions(docs) {
     receiptUrl: doc.receiptUrl,
     isRecurring: doc.isRecurring,
     recurringInterval: doc.recurringInterval,
+    date: doc.date ? new Date(doc.date).toISOString() : null,
     nextRecurringDate: doc.nextRecurringDate
       ? new Date(doc.nextRecurringDate).toISOString()
       : null,
