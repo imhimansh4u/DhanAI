@@ -1,12 +1,17 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/lib/inngest/client";
 import { checkBudgetAlerts } from "@/lib/inngest/functions";
+import { processRecurringTransaction , triggerRecurringTransactions } from "@/lib/inngest/functions";
 
 // Create an API that serves functions. Avoid export-destructuring to
 // prevent parser issues in some dev environments.
 const handlers = serve({
   client: inngest,
-  functions: [checkBudgetAlerts],
+  functions: [
+    checkBudgetAlerts,
+    processRecurringTransaction,
+    triggerRecurringTransactions,
+  ],
 });
 
 export const GET = handlers.GET;
