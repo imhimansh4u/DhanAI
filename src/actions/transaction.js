@@ -187,7 +187,7 @@ export async function scanReceipt(file) {
     });
 
     // Convert File to ArrayBuffer
-    const arrayBuffer = await file.arrayBuffer();    // To convert the file into raw Binary Data..
+    const arrayBuffer = await file.arrayBuffer(); // To convert the file into raw Binary Data..
 
     // convert ArrayBuffer to Base64 (Bcs it is a standard way of Doing the Things)
     const base64String = Buffer.from(arrayBuffer).toString("base64");
@@ -224,7 +224,7 @@ export async function scanReceipt(file) {
     const response = await result.response;
 
     const text = response.text();
-    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();   // Bcs the Response will contain some zibris things in the front and end
+    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim(); // Bcs the Response will contain some zibris things in the front and end
 
     try {
       const data = JSON.parse(cleanedText);
@@ -242,5 +242,116 @@ export async function scanReceipt(file) {
   } catch (error) {
     console.log("Error Scanning Receipt :", error.message);
     throw new Error("Failed to Scan the Receipt");
+  }
+}
+
+// To Get a transaction with given id
+export async function getTransaction(id) {
+  try {
+    await connect();
+  } catch (error) {
+    throw new Error("Database Connection Failed");
+  }
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  const user = await User.findOne({ clerkUserId: userId });
+  if (!user) throw new Error("User Not Found");
+
+  const transaction = await Transaction.findOne({
+    _id: id,
+    userId: user._id,
+  });
+
+  if (!transaction) {
+    throw new Error("Transaction Not Found");
+  }
+
+  return serializeAmount(transaction.toObject());
+}
+
+export async function updateTransaction(id, data) {
+  try {
+    // Database Connection
+    await connect();
+
+    // authorization and User Validation
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await User.findOne({ clerkUserId: userId });
+    if (!user) throw new Error("User not found");
+
+    // Get the original transaction with account details
+    const originalTransaction = await Transaction.findOne({
+      _id: id,
+      userId: user._id,
+    }).populate("accountId");
+
+    if (!originalTransaction) throw new Error("Transaction not found");
+
+    // Calculate balance changes here
+    const oldAmount = Number(originalTransaction.amount.toString());
+    const newAmount = Number(data.amount);
+
+    const oldBalanceChange =
+      originalTransaction.transactionType === "EXPENSE"
+        ? -oldAmount
+        : oldAmount;
+
+    const newBalanceChange =
+      data.transactionType === "EXPENSE" ? -newAmount : newAmount;
+
+    const netBalanceChange = newBalanceChange - oldBalanceChange;
+
+    //  Update transaction + account balance (ya to dono Succeed or both failed)
+    const session = await mongoose.startSession();
+    let updatedTransaction;
+
+    try {
+      session.startTransaction();
+
+      // Update Transaction
+      updatedTransaction = await Transaction.findOneAndUpdate(
+        { _id: id, userId: user._id },
+        {
+          ...data,
+          nextRecurringDate:
+            data.isRecurring && data.recurringInterval
+              ? calculateNextRecurringDate(data.date, data.recurringInterval)
+              : null,
+        },
+        { new: true, session }
+      );
+
+      if (!updatedTransaction) throw new Error("Failed to update transaction");
+
+      // Update Account Balance
+      await Account.findByIdAndUpdate(
+        data.accountId,
+        { $inc: { balance: netBalanceChange } },
+        { session }
+      );
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    //  Revalidating frontend paths
+    revalidatePath("/dashboard");
+    revalidatePath(`/account/${data.accountId}`);
+
+    return {
+      success: true,
+      data: serializeAmount(updatedTransaction.toObject()),
+    };
+  } catch (error) {
+    throw new Error(error.message);
   }
 }
