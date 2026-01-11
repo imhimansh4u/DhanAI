@@ -514,22 +514,6 @@ function TransactionTable({ transactions }) {
               </Button>
             </div>
           )}
-          {/*  Page number buttons */}
-          <div className="flex justify-center gap-1 mt-2">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <Button
-                key={i}
-                variant={currentPage === i + 1 ? "default" : "outline"}
-                onClick={() => {
-                  setCurrentPage(i + 1);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="px-3 text-sm"
-              >
-                {i + 1}
-              </Button>
-            ))}
-          </div>
         </div>
       </div>
     </div>

@@ -4,6 +4,9 @@ import React, { Suspense } from "react";
 import TransactionTable from "./_components/transaction-table";
 import { BarLoader } from "react-spinners";
 import { AccountChart } from "./_components/account-chart";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Wallet, Plus, Edit3 } from "lucide-react";
 
 function serializeTransactions(docs) {
   if (!docs) return [];
@@ -48,43 +51,45 @@ const AccountPage = async ({ params }) => {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-green-50 via-white to-green-50">
       <div className="w-full mt-10 px-4 sm:px-10">
-        <div
-          className="
-        w-full 
-        bg-gradient-to-r from-emerald-50 via-white to-emerald-50
-        text-gray-800 
-        border border-emerald-100
-        p-6 sm:p-8 
-        flex flex-col sm:flex-row 
-        justify-between 
-        items-start sm:items-center 
-        gap-4
-        shadow-sm
-      "
-        >
-          {/* Left Section */}
-          <div className="w-full sm:w-auto text-center sm:text-left">
-            <h1 className="text-3xl sm:text-5xl font-extrabold bg-gradient-to-r from-sky-600 via-blue-500 to-cyan-600 bg-clip-text text-transparent drop-shadow-md">
-              {accountData.name}
-            </h1>
-            <p className="text-sky-700 mt-2 text-base sm:text-lg font-medium">
-              {accountData.accountType.charAt(0).toUpperCase() +
-                accountData.accountType.slice(1).toLowerCase()}{" "}
-              Account
-            </p>
+        <div className="w-full bg-white/50 backdrop-blur-sm border border-emerald-100 p-4 sm:p-6 rounded-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+          {/* left: title + type */}
+          <div className="flex items-start gap-4 min-w-0">
+            <div className="p-3 rounded-lg bg-emerald-50 text-emerald-600">
+              <Wallet className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-500 truncate">
+                {accountData.name}
+              </h1>
+              <div className="mt-1 flex items-center gap-3 text-sm text-gray-600">
+                <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">
+                  {accountData.accountType.charAt(0).toUpperCase() +
+                    accountData.accountType.slice(1).toLowerCase()}
+                </span>
+                <span className="text-muted-foreground">
+                  {accountData._count.transactions} transactions
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Right Section */}
-          <div className="w-full sm:w-auto text-center sm:text-right">
-            <p className="text-lg sm:text-xl text-gray-800 font-semibold">
-              Balance:{" "}
-              <span className="text-sky-700 font-extrabold">
+          {/* right: balance + actions */}
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-sm text-gray-500">Available Balance</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600">
                 ₹{parseFloat(accountData.balance).toFixed(2)}
-              </span>
-            </p>
-            <p className="mt-1 sm:mt-2 text-sm text-gray-600">
-              {accountData._count.transactions} Transactions
-            </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Link href={`/transaction/create?account=${accountData._id}`}>
+                <Button size="sm" className="inline-flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

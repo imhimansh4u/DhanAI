@@ -12,21 +12,19 @@ const HeroSection = () => {
     const imageElement = imageRef.current;
 
     const handleScroll = () => {
-        const scrollPosition = window.scrollY;
-        const scrollThreshold = 100;
+      const scrollPosition = window.scrollY;
+      const scrollThreshold = 100;
 
-        if(scrollPosition>scrollThreshold){
-            imageElement.classList.add("scrolled");
-        }
-        else{
-            imageElement.classList.remove("scrolled");
-        }
-    }
-    
-    window.addEventListener("scroll",handleScroll);
-    return ()=>window.removeEventListener("scroll",handleScroll);
+      if (scrollPosition > scrollThreshold) {
+        imageElement.classList.add("scrolled");
+      } else {
+        imageElement.classList.remove("scrolled");
+      }
+    };
 
-  },[]);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <section className="pt-20 md:pt-20 pb-20 bg-gradient-to-b from-[#f7fff8] to-white overflow-hidden">

@@ -121,19 +121,33 @@
   }
 }
 
-
 .hero-image-wrapper {
   perspective: 800px;
 }
 
-.hero-image{
+.hero-image {
   transform: rotateX(15deg) scale(1);
-  transition: transform 0.5s ease-out;
-  will-change: transform;
+  transition:
+    transform 0.5s ease-out,
+    filter 300ms;
+  will-change: transform, filter;
+  animation: hero-float 6s ease-in-out infinite;
 }
 
 .hero-image.scrolled {
-  transform: rorateX(0deg) scale(1) translateY(40px);
+  transform: rotateX(0deg) translateY(36px) scale(0.995);
+}
+
+@keyframes hero-float {
+  0% {
+    transform: rotateX(15deg) translateY(0) scale(1);
+  }
+  50% {
+    transform: rotateX(12deg) translateY(-8px) scale(1.01);
+  }
+  100% {
+    transform: rotateX(15deg) translateY(0) scale(1);
+  }
 }
 
 @keyframes shine {
