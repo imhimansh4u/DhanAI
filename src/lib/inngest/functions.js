@@ -1,11 +1,12 @@
 import { inngest } from "./client";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import Budget from "@/models/budgets";
 import User from "@/models/userModel";
 import Transaction from "@/models/transactions";
 import Account from "@/models/accounts";
 import { connect } from "@/dbConfig/dbConfig";
 import { sendEmail } from "@/actions/send-email";
-import Emailtempelate from "../../../emails/email";
+import EmailTemplate from "../../../emails/email";
 import mongoose from "mongoose";
 
 /**
@@ -159,7 +160,7 @@ export const checkBudgetAlerts = inngest.createFunction(
           await sendEmail({
             to: budget.user.email,
             subject: `Budget Alert for ${defaultAccount.name}`,
-            react: Emailtempelate({
+            react: EmailTemplate({
               userName: budget.user.name,
               type: "budget-alert",
               data: {
@@ -387,4 +388,231 @@ function calculateNextRecurringDate(date, interval) {
       break;
   }
   return next;
+}
+
+//  1. Generate AI Insights
+export async function generateFinancialInsights(stats, month) {
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn("GEMINI_API_KEY not set — returning fallback insights");
+    return [
+      "Your highest expense category this month might need attention. DhanAI can help you analyze it better.",
+      "Consider setting up a monthly budget with DhanAI to improve financial management.",
+      "Track your recurring expenses using DhanAI to discover hidden savings opportunities.",
+    ];
+  }
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model =
+    genAI.getGenerativeModel?.({ model: "gemini-2.5-flash" }) || genAI;
+
+  const prompt = `
+    Analyze this financial data and provide 3 concise, actionable insights.
+    Focus on spending patterns and practical advice.
+    Keep it friendly and conversational.
+    My web app name is DhanAI — mention it naturally while giving suggestions.
+
+    Financial Data for ${month}:
+    - Total Income: ₹${stats.totalIncome}
+    - Total Expenses: ₹${stats.totalExpenses}
+    - Net Income: ₹${stats.totalIncome - stats.totalExpenses}
+    - Expense Categories: ${Object.entries(stats.byCategory)
+      .map(([category, amount]) => `${category}: ₹${amount}`)
+      .join(", ")}
+
+    Format the response as a JSON array of strings, like this:
+    ["insight 1", "insight 2", "insight 3"]
+  `;
+
+  try {
+    // Try multiple SDK call patterns to be resilient to version differences
+    let result;
+
+    if (typeof model.generateContent === "function") {
+      result = await model.generateContent(prompt);
+    } else if (typeof genAI.generate === "function") {
+      result = await genAI.generate({ model: "gemini-2.5-flash", prompt });
+    } else if (typeof model.generate === "function") {
+      result = await model.generate({ prompt });
+    } else {
+      throw new Error(
+        "No supported generate method found on GoogleGenerativeAI client"
+      );
+    }
+
+    // Attempt to extract text from a few known response shapes
+    let text = null;
+    try {
+      if (result?.response?.text) text = result.response.text();
+      else if (result?.output?.[0]?.content?.[0]?.text)
+        text = result.output[0].content[0].text;
+      else if (typeof result === "string") text = result;
+      else if (result?.candidates?.[0]?.content)
+        text = result.candidates[0].content;
+    } catch (e) {
+      // ignore internal extraction errors
+    }
+
+    if (!text) {
+      console.error("generateFinancialInsights: unexpected result shape", {
+        result,
+      });
+      throw new Error("Empty response from Gemini");
+    }
+
+    const cleanedText = String(text)
+      .replace(/```(?:json)?\n?/g, "")
+      .trim();
+
+    try {
+      return JSON.parse(cleanedText);
+    } catch (jsonErr) {
+      // If the model didn't return JSON, try to extract lines as fallback
+      console.warn(
+        "Could not parse JSON from Gemini — returning line-split fallback",
+        { cleanedText }
+      );
+      return cleanedText
+        .split(/\n+/)
+        .map((l) => l.replace(/^[0-9\.\-\)\s]+/, "").trim())
+        .filter(Boolean)
+        .slice(0, 3);
+    }
+  } catch (error) {
+    console.error("Error generating insights:", error);
+    return [
+      "Your highest expense category this month might need attention. DhanAI can help you analyze it better.",
+      "Consider setting up a monthly budget with DhanAI to improve financial management.",
+      "Track your recurring expenses using DhanAI to discover hidden savings opportunities.",
+    ];
+  }
+}
+
+//  2. Generate Monthly Reports
+export const generateMonthlyReports = inngest.createFunction(
+  { id: "generate-monthly-reports", name: "Generate Monthly Reports" },
+  { cron: "0 0 1 * *" }, // run on 1st of every month at 00:00
+  async ({ step }) => {
+    try {
+      await connect(); // ensure DB connection
+
+      const users = await step.run("fetch-users", async () => {
+        return await User.find();
+      });
+
+      for (const user of users) {
+        await step.run(`user-${user._id}-report`, async () => {
+          const accounts = await Account.find({ userId: user._id });
+
+          const lastMonth = new Date();
+          lastMonth.setMonth(lastMonth.getMonth() - 1);
+          const monthName = lastMonth.toLocaleString("default", {
+            month: "long",
+          });
+
+          const stats = await getMonthlyStats(user._id, lastMonth);
+          const insights = await generateFinancialInsights(stats, monthName);
+
+          await sendEmail({
+            to: user.email,
+            subject: `Your Monthly Financial Report - ${monthName}`,
+            react: EmailTemplate({
+              userName: user.name,
+              type: "monthly-report",
+              data: {
+                stats,
+                month: monthName,
+                insights,
+                accounts,
+              },
+            }),
+          });
+        });
+      }
+
+      return { processed: users.length };
+    } catch (error) {
+      console.error("Error generating monthly reports:", error);
+      throw error;
+    }
+  }
+);
+
+//  3. Get Monthly Stats
+export async function getMonthlyStats(userId, month) {
+  const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
+  const endDate = new Date(month.getFullYear(), month.getMonth() + 1, 1); // exclusive
+
+  const pipeline = [
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(userId),
+        date: { $gte: startDate, $lt: endDate },
+      },
+    },
+    {
+      $facet: {
+        totals: [
+          {
+            $group: {
+              _id: null,
+              totalExpenses: {
+                $sum: {
+                  $cond: [
+                    { $eq: ["$transactionType", "EXPENSE"] },
+                    { $toDouble: "$amount" },
+                    0,
+                  ],
+                },
+              },
+              totalIncome: {
+                $sum: {
+                  $cond: [
+                    { $eq: ["$transactionType", "INCOME"] },
+                    { $toDouble: "$amount" },
+                    0,
+                  ],
+                },
+              },
+              transactionCount: { $sum: 1 },
+            },
+          },
+        ],
+        byCategory: [
+          { $match: { transactionType: "EXPENSE" } },
+          {
+            $group: {
+              _id: "$category",
+              amount: { $sum: { $toDouble: "$amount" } },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $project: {
+        totals: { $arrayElemAt: ["$totals", 0] },
+        byCategory: 1,
+      },
+    },
+  ];
+
+  const res = await Transaction.aggregate(pipeline);
+  const totals = res[0]?.totals || {
+    totalExpenses: 0,
+    totalIncome: 0,
+    transactionCount: 0,
+  };
+  const byCategoryArray = res[0]?.byCategory || [];
+
+  const byCategory = byCategoryArray.reduce((acc, cur) => {
+    acc[cur._id || "Uncategorized"] = cur.amount;
+    return acc;
+  }, {});
+
+  return {
+    totalExpenses: totals.totalExpenses || 0,
+    totalIncome: totals.totalIncome || 0,
+    byCategory,
+    transactionCount: totals.transactionCount || 0,
+  };
 }
