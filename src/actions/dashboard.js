@@ -5,6 +5,8 @@ import User from "@/models/userModel";
 import Account from "@/models/accounts";
 import { connect } from "@/dbConfig/dbConfig";
 import { revalidatePath } from "next/cache";
+import Transaction from "@/models/transactions";
+import mongoose from "mongoose";
 
 const serializeTransaction = (doc) => {
   // Handle both Mongoose documents and plain JS objects
@@ -25,10 +27,18 @@ const serializeTransaction = (doc) => {
     ...obj,
     _id: obj._id?.toString(),
     userId: obj.userId?.toString(),
+    accountId: obj.accountId?.toString(),
     balance: convertDecimalToNumber(obj.balance),
     amount: convertDecimalToNumber(obj.amount),
     createdAt: obj.createdAt ? new Date(obj.createdAt).toISOString() : null,
     updatedAt: obj.updatedAt ? new Date(obj.updatedAt).toISOString() : null,
+    nextRecurringDate: obj.nextRecurringDate
+      ? new Date(obj.nextRecurringDate).toISOString()
+      : null,
+    lastProcessed: obj.lastProcessed
+      ? new Date(obj.lastProcessed).toISOString()
+      : null,
+    date: obj.date ? new Date(obj.date).toISOString() : null,
   };
 };
 
@@ -127,4 +137,35 @@ export async function getUserAccounts() {
   const serializedAccounts = accounts.map((acc) => serializeTransaction(acc)); // serialize all the accounts
 
   return serializedAccounts;
+}
+
+// for the Dashboard Data
+export async function getDashboardData() {
+  try {
+    await connect();
+  } catch (error) {
+    throw new Error("Database Connection failed");
+  }
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  const user = await User.findOne({ clerkUserId: userId });
+
+  if (!user) {
+    throw new Error("User not Found");
+  }
+
+  // Get all User Transactions
+  const transactions = await Transaction.aggregate([
+    {
+      $match: { userId: new mongoose.Types.ObjectId(user._id) },
+    },
+    {
+      $sort: { date: -1 }, // sort by date descending
+    },
+  ]);
+
+  return transactions.map(serializeTransaction);
 }
