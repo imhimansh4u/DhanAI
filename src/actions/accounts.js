@@ -5,8 +5,6 @@ import Account from "@/models/accounts";
 import User from "@/models/userModel";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import React from "react";
-import { success } from "zod";
 import { notFound } from "next/navigation";
 import Transaction from "@/models/transactions";
 
@@ -61,14 +59,14 @@ export async function updateDefaultAccount(accountId) {
     // firstly sare accounts ko isDefault false mark kr do
     await Account.updateMany(
       { userId: user._id },
-      { $set: { isDefault: false } }
+      { $set: { isDefault: false } },
     );
 
     // Now update that account which needs to be updated
     const account = await Account.findByIdAndUpdate(
       accountId,
       { $set: { isDefault: true } },
-      { new: true } // returns updated document
+      { new: true }, // returns updated document
     );
 
     revalidatePath("/dashboard");
@@ -170,42 +168,19 @@ export async function bulkDeleteTransactions(transactionIds) {
       userId: user._id,
     });
 
-    const accountBalanceChanges = transactions.reduce((acc, transaction) => {
-      // acc or accumulator keeps track of all the changes happens during the process , here in this case we used a object for it
-      const change =
-        transaction.type === "EXPENSE"
-          ? transaction.amount
-          : -transaction.amount;
-
-      acc[transaction.accountId] = (acc[transaction.accountId] || 0) - change; // Update the changes according to the accountId
-      return acc;
-    }, {}); // acc should must be initialised
-
-    // Now delete transactions and update account balances in a transaction
-
+    // Now delete transactions WITHOUT updating account balance
     await session.withTransaction(async () => {
-      // Delete al the matching transactions
+      // Delete all the matching transactions
       await Transaction.deleteMany(
         {
           _id: { $in: transactionIds },
           userId: user._id,
         },
-        { session } // attach session (kyuki iske bina seession ke andr include nhi rhega)
+        { session }, // attach session (kyuki iske bina seession ke andr include nhi rhega)
       );
-
-      // Update each account's balance (Hmare case me bs ek hi account rhega)
-      for (const [accountId, balanceChange] of Object.entries(
-        accountBalanceChanges
-      )) {
-        await Account.updateOne(
-          { _id: accountId },
-          { $inc: { balance: balanceChange } },
-          { session } // attach session
-        );
-      }
     });
 
-    console.log("Account Balance Updated Succesfully");
+    console.log("Transactions Deleted Successfully");
 
     revalidatePath("/dashboard");
     revalidatePath("/account/[id]");
@@ -214,7 +189,70 @@ export async function bulkDeleteTransactions(transactionIds) {
   }
 }
 
-// NOTES->
+// Delete Account and all its transactions
+export async function deleteAccount(accountId) {
+  try {
+    await connect();
+    const { userId } = await auth();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    const user = await User.findOne({ clerkUserId: userId });
+    if (!user) {
+      throw new Error("User not Found");
+    }
+
+    // Find the account to delete
+    const account = await Account.findOne({
+      _id: accountId,
+      userId: user._id,
+    });
+
+    if (!account) {
+      throw new Error("Account not found");
+    }
+
+    // Check if this is the only account (can't delete if it's the only one)
+    const accountCount = await Account.countDocuments({ userId: user._id });
+    
+
+    // Start a session for atomic deletion
+    const session = await mongoose.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        // Delete all transactions associated with this account
+        await Transaction.deleteMany(
+          { accountId: accountId, userId: user._id },
+          { session },
+        );
+
+        // Delete the account itself
+        await Account.deleteOne(
+          { _id: accountId, userId: user._id },
+          { session },
+        );
+      });
+
+      console.log(
+        `Account ${accountId} and its transactions deleted successfully`,
+      );
+
+      revalidatePath("/dashboard");
+      revalidatePath("/account/[id]");
+
+      return {
+        success: true,
+        message: "Account and its transactions deleted successfully",
+      };
+    } finally {
+      await session.endSession();
+    }
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return { success: false, error: error.message };
+  }
+}
 /**
  * What "use server" Does
 
