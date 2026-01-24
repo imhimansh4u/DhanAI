@@ -50,7 +50,7 @@ const HeroSection = () => {
               </Button>
             </Link>
 
-            <Link href="https://www.youtube.com/roadsidecoder">
+            <Link href="/">
               <Button
                 size="lg"
                 variant="outline"
@@ -79,7 +79,7 @@ const HeroSection = () => {
         </div>
       </div>
     </section>
-  );  
+  );
 };
 
 export default HeroSection;
