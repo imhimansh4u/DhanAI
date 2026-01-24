@@ -22,20 +22,24 @@ export default function EmailTemplate({ userName = "", type = "", data = {} }) {
             <Heading style={styles.title}>Monthly Financial Report</Heading>
 
             <Text style={styles.text}>Hello {userName},</Text>
-            <Text style={styles.text}>Here’s your financial summary for {data?.month}:</Text>
+            <Text style={styles.text}>
+              Here’s your financial summary for {data?.month}:
+            </Text>
 
             <Section style={styles.statsContainer}>
               <div style={styles.stat}>
                 <Text style={styles.text}>Total Income</Text>
-                <Text style={styles.heading}>${stats.totalIncome}</Text>
+                <Text style={styles.heading}>₹{stats.totalIncome}</Text>
               </div>
               <div style={styles.stat}>
                 <Text style={styles.text}>Total Expenses</Text>
-                <Text style={styles.heading}>${stats.totalExpenses}</Text>
+                <Text style={styles.heading}>₹{stats.totalExpenses}</Text>
               </div>
               <div style={styles.stat}>
                 <Text style={styles.text}>Net</Text>
-                <Text style={styles.heading}>${stats.totalIncome - stats.totalExpenses}</Text>
+                <Text style={styles.heading}>
+                  ₹{stats.totalIncome - stats.totalExpenses}
+                </Text>
               </div>
             </Section>
 
@@ -55,13 +59,16 @@ export default function EmailTemplate({ userName = "", type = "", data = {} }) {
               <Section style={styles.section}>
                 <Heading style={styles.heading}>DhanAI Insights</Heading>
                 {data.insights.map((insight, index) => (
-                  <Text key={index} style={styles.text}>• {insight}</Text>
+                  <Text key={index} style={styles.text}>
+                    • {insight}
+                  </Text>
                 ))}
               </Section>
             )}
 
             <Text style={styles.footer}>
-              Thank you for using DhanAI. Keep tracking your finances for better financial health!
+              Thank you for using DhanAI. Keep tracking your finances for better
+              financial health!
             </Text>
           </Container>
         </Body>
@@ -79,20 +86,26 @@ export default function EmailTemplate({ userName = "", type = "", data = {} }) {
             <Heading style={styles.title}>Budget Alert</Heading>
             <Text style={styles.text}>Hello {userName},</Text>
             <Text style={styles.text}>
-              You’ve used {typeof data?.percentageUsed === 'number' ? data.percentageUsed.toFixed(1) : data?.percentageUsed}% of your monthly budget.
+              You’ve used{" "}
+              {typeof data?.percentageUsed === "number"
+                ? data.percentageUsed.toFixed(1)
+                : data?.percentageUsed}
+              % of your monthly budget.
             </Text>
             <Section style={styles.statsContainer}>
               <div style={styles.stat}>
                 <Text style={styles.text}>Budget Amount</Text>
-                <Text style={styles.heading}>${data?.budgetAmount ?? 0}</Text>
+                <Text style={styles.heading}>₹{data?.budgetAmount ?? 0}</Text>
               </div>
               <div style={styles.stat}>
                 <Text style={styles.text}>Spent So Far</Text>
-                <Text style={styles.heading}>${data?.totalExpenses ?? 0}</Text>
+                <Text style={styles.heading}>₹{data?.totalExpenses ?? 0}</Text>
               </div>
               <div style={styles.stat}>
                 <Text style={styles.text}>Remaining</Text>
-                <Text style={styles.heading}>${(data?.budgetAmount ?? 0) - (data?.totalExpenses ?? 0)}</Text>
+                <Text style={styles.heading}>
+                  ₹{(data?.budgetAmount ?? 0) - (data?.totalExpenses ?? 0)}
+                </Text>
               </div>
             </Section>
           </Container>
