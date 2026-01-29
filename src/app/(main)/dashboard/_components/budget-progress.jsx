@@ -122,7 +122,6 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
           </div>
         </div>
         <CardAction className="text-xs text-slate-400 uppercase tracking-wider">
-          Card Action
         </CardAction>
       </CardHeader>
 

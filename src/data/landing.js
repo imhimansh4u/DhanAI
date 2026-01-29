@@ -5,6 +5,7 @@ import {
   CreditCard,
   Globe,
   Zap,
+  Bot
 } from "lucide-react";
 
 // Stats Data
@@ -52,9 +53,10 @@ export const featuresData = [
     description: "Manage multiple accounts and credit cards in one place",
   },
   {
-    icon: <Globe className="h-8 w-8 text-blue-600" />,
-    title: "Multi-Currency",
-    description: "Support for multiple currencies with real-time conversion",
+    icon: <Bot className="h-8 w-8 text-blue-600" />,
+    title: "DhanAI Chatbot",
+    description:
+      "Discuss Your Financial Planning and Overview using modern Chatbot",
   },
   {
     icon: <Zap className="h-8 w-8 text-blue-600" />,
