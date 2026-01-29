@@ -100,50 +100,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      {/* Now Here is the What are User say section */}
-      <section className="w-full bg-gradient-to-b from-white to-green-50 py-20">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          {/* Section Heading */}
-          <h2 className="text-3xl sm:text-4xl font-semibold text-gray-800 mb-16 relative inline-block">
-            What Our Users Say
-            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-emerald-500 to-green-400 rounded-full"></span>
-          </h2>
 
-          {/* Testimonials Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {testimonialsData.map((testimonial, indx) => (
-              <Card
-                key={indx}
-                className="border border-green-100 bg-white hover:bg-green-50 transition-all duration-300 shadow-sm hover:shadow-md rounded-2xl"
-              >
-                <CardContent className="flex flex-col items-center text-center p-8">
-                  {/* User Image + Name + Role */}
-                  <div className="flex flex-col items-center mb-4">
-                    <Image
-                      src={testimonial.image}
-                      alt={testimonial.name}
-                      width={64}
-                      height={64}
-                      className="rounded-full mb-3 shadow-md"
-                    />
-                    <div className="font-semibold text-gray-800 text-base">
-                      {testimonial.name}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {testimonial.role}
-                    </div>
-                  </div>
-
-                  {/* Quote */}
-                  <p className="text-gray-600 text-sm italic leading-relaxed">
-                    “{testimonial.quote}”
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/*  Last Section */}
       <section className="w-full bg-gradient-to-b from-white to-green-50 py-20">
