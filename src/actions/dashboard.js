@@ -139,7 +139,7 @@ export async function getUserAccounts() {
     const serializedAccounts = accounts.map((acc) => serializeTransaction(acc)); // serialize all the accounts
 
     return serializedAccounts;
-  } catch {
+  } catch (error) {
     throw new Error(error.message);
   }
 }

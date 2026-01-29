@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getAccountWithTransactions } from "@/actions/accounts";
 import { notFound } from "next/navigation";
 import React, { Suspense } from "react";
