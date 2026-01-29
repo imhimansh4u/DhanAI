@@ -73,7 +73,7 @@ export async function createAccount(data) {
       // if this account should be default , then firstly we have to make all the other accounts as not default
       await Account.updateMany(
         { userId: user.id, isDefault: true }, // find it
-        { $set: { isDefault: false } } // and tjen update it
+        { $set: { isDefault: false } }, // and tjen update it
       );
     }
 
@@ -98,45 +98,50 @@ export async function createAccount(data) {
 }
 
 export async function getUserAccounts() {
-  const { userId } = await auth();
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
+  try {
+    await connect();
+    const { userId } = await auth();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
 
-  const user = await User.findOne({ clerkUserId: userId });
-  // aggregation pipelines to get all the required things
-  const accounts = await Account.aggregate([
-    {
-      $match: { userId: user._id }, // filter by userId
-    },
-    {
-      $sort: { createdAt: -1 }, // sort by createdAt descending
-    },
-    {
-      $lookup: {
-        from: "transactions", // collection name (lowercase + plural)
-        localField: "_id", // field in Account
-        foreignField: "accountId", // field in Transaction
-        as: "transactions",
+    const user = await User.findOne({ clerkUserId: userId });
+    // aggregation pipelines to get all the required things
+    const accounts = await Account.aggregate([
+      {
+        $match: { userId: user._id }, // filter by userId
       },
-    },
-    {
-      $addFields: {
-        _count: {
-          transactions: { $size: "$transactions" }, // count of related transactions
+      {
+        $sort: { createdAt: -1 }, // sort by createdAt descending
+      },
+      {
+        $lookup: {
+          from: "transactions", // collection name (lowercase + plural)
+          localField: "_id", // field in Account
+          foreignField: "accountId", // field in Transaction
+          as: "transactions",
         },
       },
-    },
-    {
-      $project: {
-        transactions: 0, // hide transaction array if you only want the count
+      {
+        $addFields: {
+          _count: {
+            transactions: { $size: "$transactions" }, // count of related transactions
+          },
+        },
       },
-    },
-  ]);
+      {
+        $project: {
+          transactions: 0, // hide transaction array if you only want the count
+        },
+      },
+    ]);
 
-  const serializedAccounts = accounts.map((acc) => serializeTransaction(acc)); // serialize all the accounts
+    const serializedAccounts = accounts.map((acc) => serializeTransaction(acc)); // serialize all the accounts
 
-  return serializedAccounts;
+    return serializedAccounts;
+  } catch {
+    throw new Error(error.message);
+  }
 }
 
 // for the Dashboard Data

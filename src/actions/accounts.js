@@ -151,8 +151,9 @@ export async function getAccountWithTransactions(accountId) {
 // To delete or bulk delete trnasactions
 export async function bulkDeleteTransactions(transactionIds) {
   try {
-    const session = await mongoose.startSession(); // a session will ensure either all the operations inside it  succeed , or all will fail
     await connect();
+    const session = await mongoose.startSession(); // a session will ensure either all the operations inside it  succeed , or all will fail
+    
     const { userId } = await auth();
     if (!userId) {
       throw new Error("Unauthorized");

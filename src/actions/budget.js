@@ -41,9 +41,10 @@ const serializeBudget = async (doc) => {
 
 export async function getCurrentBudget(accountId) {
   try {
+    await connect();
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
-    await connect();
+
     const user = await User.findOne({ clerkUserId: userId });
 
     if (!user) {
@@ -61,13 +62,13 @@ export async function getCurrentBudget(accountId) {
     const startOfMonth = new Date( //new Date(year, monthIndex, day)
       currentDate.getFullYear(),
       currentDate.getMonth(),
-      1
+      1,
     );
     // end of the month
     const endOfMonth = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth() + 1,
-      0
+      0,
     );
 
     // Build match object and convert accountId to ObjectId when needed
@@ -130,9 +131,10 @@ export async function getCurrentBudget(accountId) {
 // function to update the budget
 export async function updateBudget(amount) {
   try {
+    await connect();
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
-    await connect();
+    
     const user = await User.findOne({ clerkUserId: userId });
 
     if (!user) {
@@ -145,7 +147,7 @@ export async function updateBudget(amount) {
       {
         new: true, // return updated document
         upsert: true, // create if not exists
-      }
+      },
     );
 
     const serializedBudget = (await serializeBudget(budget)) || null;
