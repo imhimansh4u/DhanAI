@@ -45,8 +45,8 @@ export default createMiddleware(aj,clerk);
 
 export const config = {
   matcher: [
-    // exclude _next, static files, and /api/inngest
-    "/((?!_next|api/inngest|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|png|gif|svg|ttf|woff2?|ico)).*)",
-    "/(api|trpc)(.*)",
+    // Exclude _next, static files, /api/inngest, and other exclusions
+    // This pattern ensures /api/inngest is never processed by middleware
+    "/((?!_next|static|api/inngest|.*\\.(?:html?|css|js(?!on)|jpe?g|png|gif|svg|ttf|woff2?|ico)).*)",
   ],
 };
