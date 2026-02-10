@@ -40,7 +40,7 @@ export function AccountChart({ transactions }) {
     // If a specific date is chosen then only so show only that date’s records
     if (selectedDate) {
       const sameDayTxns = transactions.filter((t) =>
-        isSameDay(new Date(t.createdAt), selectedDate)
+        isSameDay(new Date(t.date), selectedDate)
       );
 
       const income = sameDayTxns
@@ -66,12 +66,12 @@ export function AccountChart({ transactions }) {
       : new Date(0);
 
     const filtered = transactions.filter((t) => {
-      const txnDate = new Date(t.createdAt);
+      const txnDate = new Date(t.date);
       return txnDate >= startDate && txnDate <= endOfDay(now);
     });
 
     const grouped = filtered.reduce((acc, transaction) => {
-      const date = format(new Date(transaction.createdAt), "MMM dd");
+      const date = format(new Date(transaction.date), "MMM dd");
       if (!acc[date]) {
         acc[date] = { date, income: 0, expense: 0 };
       }

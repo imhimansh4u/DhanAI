@@ -49,12 +49,18 @@ export function DashboardOverview({ accounts, transactions }) {
 
   // Calculate expense breakdown for current month
   const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+  
   const currentMonthExpenses = accountTransactions.filter((t) => {
     const transactionDate = new Date(t.date);
+    const transactionYear = transactionDate.getUTCFullYear();
+    const transactionMonth = transactionDate.getUTCMonth();
+    
     return (
       t.transactionType === "EXPENSE" &&
-      transactionDate.getMonth() === currentDate.getMonth() &&
-      transactionDate.getFullYear() === currentDate.getFullYear()
+      transactionMonth === currentMonth &&
+      transactionYear === currentYear
     );
   });
 
