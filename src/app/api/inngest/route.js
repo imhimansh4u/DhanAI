@@ -21,6 +21,23 @@ const handlers = serve({
   ],
 });
 
-export const GET = handlers.GET;
-export const POST = handlers.POST;
-export const PUT = handlers.PUT;
+// Log when the route is accessed
+export const GET = async (request) => {
+  console.log("[Inngest] GET request to /api/inngest");
+  console.log("[Inngest] Keys configured:", {
+    hasSigningKey: !!process.env.INNGEST_SIGNING_KEY,
+    hasApiKey: !!process.env.INNGEST_API_KEY,
+    hasBaseUrl: !!process.env.INNGEST_BASE_URL,
+  });
+  return handlers.GET(request);
+};
+
+export const POST = async (request) => {
+  console.log("[Inngest] POST request to /api/inngest");
+  return handlers.POST(request);
+};
+
+export const PUT = async (request) => {
+  console.log("[Inngest] PUT request to /api/inngest");
+  return handlers.PUT(request);
+};
